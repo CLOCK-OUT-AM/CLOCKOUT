@@ -1,0 +1,41 @@
+CLOCKOUT PRO 3.1 - MEJORA VISUAL
+
+INSTALACION
+1. Extrae la carpeta CLOCKOUT_PRO_3.
+2. En VS Code abre la carpeta que contiene directamente app.py.
+3. Abre Terminal > New Terminal.
+4. Ejecuta: python -m pip install -r requirements.txt
+5. Ejecuta: python -m streamlit run app.py
+6. Abre la Local URL que aparece en la terminal.
+
+CONTENIDO
+- app.py: aplicación Streamlit.
+- requirements.txt: dependencias.
+- assets/: fotografías locales de CLOCKOUT para portada y catálogo.
+- clockout.db se crea automáticamente al iniciar y conserva datos locales.
+
+MEJORAS 3.1
+- Portada con fotografía local de producto, sin depender de Unsplash.
+- Fotografías de producto locales para los tres diseños.
+- Panel lateral reorganizado con tarjetas de alarmas, dispositivo, progreso y logros.
+- Se conserva el flujo de tienda, carrito, pedidos de demostración, alarmas,
+  vinculación simulada, simulador de presión, perfil, soporte y administración.
+
+LIMITACIONES IMPORTANTES
+- La vinculación y el estado de batería son simulaciones locales.
+- La alarma no se ejecuta como servicio de fondo ni se transmite a hardware real.
+- La pisada es un simulador; el producto físico requiere sensor, microcontrolador,
+  firmware y conexión Bluetooth/Wi-Fi.
+- Los pedidos son demostrativos y no procesan pagos.
+- El perfil local no implementa autenticación segura.
+
+
+ACTUALIZACION 3.2
+- Escaparate de inicio ordenado: Rectangular Clásica (CLOCKOUT Estándar),
+  Circular Confort (CLOCKOUT Estándar) y Ondulada Premium (TOUCLOCK).
+- Descripciones diferenciadas para explicar línea de entrada y línea premium.
+- Logotipo CLOCKOUT con isotipo de reloj integrado en una alfombra.
+- El catálogo completo de Tienda conserva las demás variantes.
+IMPORTANTE: si ya ejecutaste una versión anterior, detén ese servidor con CTRL+C
+y ejecuta esta versión desde la carpeta que contiene directamente app.py.
+La base de datos anterior puede conservarse; el escaparate usa un orden explícito.
