@@ -1,5 +1,6 @@
 from __future__ import annotations
 import streamlit as st
+import streamlit.components.v1 as components
 import sqlite3, json, uuid, base64
 from pathlib import Path
 from datetime import datetime, time, date
@@ -48,6 +49,34 @@ def event(kind, detail):
         c.execute('INSERT INTO events(kind,detail,created) VALUES(?,?,?)', (kind, detail, datetime.now().isoformat(timespec='seconds')))
 
 init_db()
+
+# --------------------------- GOOGLE ANALYTICS 4 ---------------------------
+# Medición de visitas y vistas de sección. No se envían nombres, correos ni
+# otros datos introducidos por los usuarios.
+GA4_MEASUREMENT_ID = "G-ZHT2XGGQG4"
+
+def track_analytics_view(section: str) -> None:
+    """Envía una vista cuando cambia la sección visible de CLOCKOUT."""
+    safe_section = json.dumps(section, ensure_ascii=False)
+    html = f'''
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA4_MEASUREMENT_ID}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {{ dataLayer.push(arguments); }}
+      gtag('js', new Date());
+      gtag('config', '{GA4_MEASUREMENT_ID}', {{ send_page_view: false }});
+      let pageLocation = document.referrer || 'https://clockout-am.streamlit.app/';
+      try {{ pageLocation = window.parent.location.href; }} catch (e) {{}}
+      const sectionName = {safe_section};
+      gtag('event', 'page_view', {{
+        page_title: 'CLOCKOUT | ' + sectionName,
+        page_location: pageLocation.split('?')[0] + '?vista=' + encodeURIComponent(sectionName),
+        page_path: '/?vista=' + encodeURIComponent(sectionName)
+      }});
+    </script>
+    '''
+    components.html(html, height=0, width=0)
+
 
 # --------------------------- STYLE ---------------------------
 st.markdown('''
@@ -378,6 +407,10 @@ def progress():
 
 # --------------------------- ROUTER ---------------------------
 page=st.session_state.page
+# Evita registrar una nueva vista en cada interacción interna de Streamlit.
+if st.session_state.get('analytics_last_page') != page:
+    track_analytics_view(page)
+    st.session_state.analytics_last_page = page
 if page=='Inicio': home()
 elif page=='Tienda': shop()
 elif page=='Carrito': cart_page()
