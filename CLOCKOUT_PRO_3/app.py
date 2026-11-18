@@ -75,7 +75,7 @@ def track_analytics_view(section: str) -> None:
       }});
     </script>
     '''
-    components.html(html, height=0, width=0)
+    st.html(html, unsafe_allow_javascript=True)
 
 
 # --------------------------- STYLE ---------------------------
