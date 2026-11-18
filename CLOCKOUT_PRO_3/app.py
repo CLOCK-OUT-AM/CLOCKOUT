@@ -55,27 +55,51 @@ init_db()
 # otros datos introducidos por los usuarios.
 GA4_MEASUREMENT_ID = "G-ZHT2XGGQG4"
 
+
 def track_analytics_view(section: str) -> None:
     """Envía una vista cuando cambia la sección visible de CLOCKOUT."""
     safe_section = json.dumps(section, ensure_ascii=False)
+
     html = f'''
-    <script async src="https://www.googletagmanager.com/gtag/js?id={GA4_MEASUREMENT_ID}"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {{ dataLayer.push(arguments); }}
-      gtag('js', new Date());
-      gtag('config', '{GA4_MEASUREMENT_ID}', {{ send_page_view: false }});
-      let pageLocation = document.referrer || 'https://clockout-am.streamlit.app/';
-      try {{ pageLocation = window.parent.location.href; }} catch (e) {{}}
-      const sectionName = {safe_section};
-      gtag('event', 'page_view', {{
-        page_title: 'CLOCKOUT | ' + sectionName,
-        page_location: pageLocation.split('?')[0] + '?vista=' + encodeURIComponent(sectionName),
-        page_path: '/?vista=' + encodeURIComponent(sectionName)
-      }});
+    (function() {{
+        window.dataLayer = window.dataLayer || [];
+
+        window.gtag = window.gtag || function() {{
+            window.dataLayer.push(arguments);
+        }};
+
+        if (!document.getElementById('clockout-ga4-script')) {{
+            var gaScript = document.createElement('script');
+            gaScript.id = 'clockout-ga4-script';
+            gaScript.async = true;
+            gaScript.src = 'https://www.googletagmanager.com/gtag/js?id={GA4_MEASUREMENT_ID}';
+            document.head.appendChild(gaScript);
+
+            window.gtag('js', new Date());
+            window.gtag('config', '{GA4_MEASUREMENT_ID}', {{
+                send_page_view: false
+            }});
+        }}
+
+        var sectionName = {safe_section};
+        var pageLocation = window.location.href;
+
+        try {{
+            pageLocation = window.parent.location.href;
+        }} catch (e) {{}}
+
+        window.gtag('event', 'page_view', {{
+            page_title: 'CLOCKOUT | ' + sectionName,
+            page_location: pageLocation.split('?')[0] + '?vista=' + encodeURIComponent(sectionName),
+            page_path: '/?vista=' + encodeURIComponent(sectionName)
+        }});
+    }})();
     </script>
     '''
+
     st.html(html, unsafe_allow_javascript=True)
+
 
 
 # --------------------------- STYLE ---------------------------
