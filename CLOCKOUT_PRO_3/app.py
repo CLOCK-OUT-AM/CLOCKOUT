@@ -31,6 +31,8 @@ class PostgresCompat:
         return self.conn.__exit__(exc_type, exc, tb)
     def execute(self, sql, params=()):
         return self.conn.execute(sql.replace('?', '%s'), params)
+    def executemany(self, sql, seq):
+        return self.conn.executemany(sql.replace('?', '%s'), seq)
 def executemany(self, sql, seq):
     cursor = self.conn.cursor()
     cursor.executemany(sql.replace('?', '%s'), seq)
