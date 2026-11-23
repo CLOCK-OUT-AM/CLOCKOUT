@@ -1,25 +1,76 @@
 from __future__ import annotations
 import streamlit as st
 import streamlit.components.v1 as components
-import sqlite3, json, uuid, base64
+import sqlite3, json, uuid, base64, os
 from pathlib import Path
 from datetime import datetime, time, date
 
 BASE = Path(__file__).parent
-DB = BASE / 'clockout.db'
+DB = BASE / 'clockout.db'  # respaldo/local fallback; en Streamlit Cloud se recomienda PostgreSQL
 ASSETS = BASE / 'assets'
 
-st.set_page_config(page_title='CLOCKOUT | Wake up different', page_icon='⏰', layout='wide', initial_sidebar_state='collapsed')
 
-# --------------------------- DATABASE ---------------------------
+def get_database_url():
+    """Lee la URL de PostgreSQL desde variable de entorno o Streamlit Secrets."""
+    value = os.environ.get('DATABASE_URL', '').strip()
+    if value:
+        return value
+    try:
+        return str(st.secrets.get('DATABASE_URL', '')).strip()
+    except Exception:
+        return ''
+
+
+class PostgresCompat:
+    """Adaptador pequeño para conservar las consultas SQL existentes con ? como placeholder."""
+    def __init__(self, conn):
+        self.conn = conn
+    def __enter__(self):
+        return self
+    def __exit__(self, exc_type, exc, tb):
+        return self.conn.__exit__(exc_type, exc, tb)
+    def execute(self, sql, params=()):
+        return self.conn.execute(sql.replace('?', '%s'), params)
+    def executemany(self, sql, seq):
+        return self.conn.executemany(sql.replace('?', '%s'), seq)
+
+
 def db():
+    url = get_database_url()
+    if url:
+        try:
+            import psycopg
+            from psycopg.rows import dict_row
+        except ImportError as exc:
+            raise RuntimeError('Falta instalar psycopg. Verifica requirements.txt y vuelve a desplegar.') from exc
+        conn = psycopg.connect(url, row_factory=dict_row, connect_timeout=10)
+        return PostgresCompat(conn)
     c = sqlite3.connect(DB, check_same_thread=False)
     c.row_factory = sqlite3.Row
     return c
 
+
+def using_postgres():
+    return bool(get_database_url())
+
+st.set_page_config(page_title='CLOCKOUT | Wake up different', page_icon='⏰', layout='wide', initial_sidebar_state='collapsed')
+
+# --------------------------- DATABASE ---------------------------
 def init_db():
     with db() as c:
-        c.executescript('''
+        if using_postgres():
+            schema = [
+                "CREATE TABLE IF NOT EXISTS profile (id INTEGER PRIMARY KEY CHECK (id=1), name TEXT, email TEXT)",
+                "CREATE TABLE IF NOT EXISTS alarms (id TEXT PRIMARY KEY, label TEXT, alarm_time TEXT, days TEXT, enabled INTEGER DEFAULT 1)",
+                "CREATE TABLE IF NOT EXISTS device (id INTEGER PRIMARY KEY CHECK (id=1), code TEXT, model TEXT, color TEXT, battery INTEGER, connected INTEGER)",
+                "CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, created TEXT, items TEXT, total DOUBLE PRECISION, status TEXT)",
+                "CREATE TABLE IF NOT EXISTS events (id BIGSERIAL PRIMARY KEY, kind TEXT, detail TEXT, created TEXT)",
+                "CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, name TEXT, shape TEXT, line TEXT, color TEXT, price DOUBLE PRECISION, stock INTEGER)",
+            ]
+            for statement in schema:
+                c.execute(statement)
+        else:
+            c.executescript('''
         CREATE TABLE IF NOT EXISTS profile(id INTEGER PRIMARY KEY CHECK(id=1), name TEXT, email TEXT);
         CREATE TABLE IF NOT EXISTS alarms(id TEXT PRIMARY KEY, label TEXT, alarm_time TEXT, days TEXT, enabled INTEGER DEFAULT 1);
         CREATE TABLE IF NOT EXISTS device(id INTEGER PRIMARY KEY CHECK(id=1), code TEXT, model TEXT, color TEXT, battery INTEGER, connected INTEGER);
@@ -49,6 +100,8 @@ def event(kind, detail):
         c.execute('INSERT INTO events(kind,detail,created) VALUES(?,?,?)', (kind, detail, datetime.now().isoformat(timespec='seconds')))
 
 init_db()
+if not using_postgres():
+    st.sidebar.caption('Almacenamiento local de demostración: configura DATABASE_URL para persistencia en la nube.')
 
 # --------------------------- GOOGLE ANALYTICS 4 ---------------------------
 # Medición de visitas y vistas de sección. No se envían nombres, correos ni
@@ -99,6 +152,7 @@ def track_analytics_view(section: str) -> None:
     '''
 
     st.html(html, unsafe_allow_javascript=True)
+
 
 
 
