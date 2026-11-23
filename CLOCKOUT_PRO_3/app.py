@@ -82,22 +82,37 @@ def init_db():
         CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, detail TEXT, created TEXT);
         CREATE TABLE IF NOT EXISTS products(id TEXT PRIMARY KEY, name TEXT, shape TEXT, line TEXT, color TEXT, price REAL, stock INTEGER);
         ''')
-        if not c.execute('SELECT 1 FROM profile WHERE id=1').fetchone():
-            c.execute('INSERT INTO profile VALUES(1,?,?)', ('John', 'john@clockout.demo'))
-        if not c.execute('SELECT 1 FROM products').fetchone():
-            products = [
-                ('rect','Rectangular Clásica','Rectangular','CLOCKOUT','Terracota',150,18),
-                ('circ','Circular Confort','Circular','CLOCKOUT','Cream',150,14),
-                ('wave','Ondulada','Ondulada','CLOCKOUT','Sage Green',150,12),
-                ('tou','Ondulada Premium','Ondulada','TOUCLOCK','Sage Green',220,8),
-                ('tou2','Circular Premium','Circular','TOUCLOCK','Gris',220,6),
-            ]
-            c.executemany('INSERT INTO products VALUES(?,?,?,?,?,?,?)', products)
-        if not c.execute('SELECT 1 FROM device WHERE id=1').fetchone():
-            c.execute('INSERT INTO device VALUES(1, NULL, NULL, NULL, 78, 0)')
-        if not c.execute('SELECT 1 FROM alarms').fetchone():
-            c.execute('INSERT INTO alarms VALUES(?,?,?,?,?)', ('a1','Despertar','07:00','Lun,Mar,Mié,Jue,Vie',1))
-            c.execute('INSERT INTO alarms VALUES(?,?,?,?,?)', ('a2','Fin de semana','09:30','Sáb,Dom',0))
+
+        c.execute(
+            "INSERT INTO profile (id, name, email) VALUES (1, ?, ?) ON CONFLICT (id) DO NOTHING",
+            ('John', 'john@clockout.demo')
+        )
+
+        products = [
+            ('rect', 'Rectangular Clásica', 'Rectangular', 'CLOCKOUT', 'Terracota', 150, 18),
+            ('circ', 'Circular Confort', 'Circular', 'CLOCKOUT', 'Cream', 150, 14),
+            ('wave', 'Ondulada', 'Ondulada', 'CLOCKOUT', 'Cream', 150, 12),
+            ('tou', 'Ondulada Premium', 'Ondulada', 'TOUCLOCK', 'Sage Green', 220, 8),
+            ('tou2', 'Circular Premium', 'Circular', 'TOUCLOCK', 'Gris', 220, 6),
+        ]
+
+        c.executemany(
+            'INSERT INTO products VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING',
+            products
+        )
+
+        c.execute(
+            'INSERT INTO device VALUES (1, NULL, NULL, NULL, 78, 0) ON CONFLICT (id) DO NOTHING'
+        )
+
+        c.execute(
+            "INSERT INTO alarms VALUES ('a1', 'Despertar', '07:00', 'Lun,Mar,Mié,Jue,Vie', 1) ON CONFLICT (id) DO NOTHING"
+        )
+
+        c.execute(
+            "INSERT INTO alarms VALUES ('a2', 'Fin de semana', '09:30', 'Sáb,Dom', 0) ON CONFLICT (id) DO NOTHING"
+        )
+
 
 def event(kind, detail):
     with db() as c:
